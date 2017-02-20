@@ -1,0 +1,14 @@
+p            2
+n            60
+nv           examples/T_LGL_nv60.txt
+varf         examples/T_LGL_varF60.txt
+tt           examples/T_LGL_tt60.txt
+prop         examples/T_LGL_prop60.txt
+cnodes       examples/T_LGL_cnodes60.txt
+cedges       examples/T_LGL_cedges60.txt
+cost         examples/T_LGL_cost60.txt
+sparse_s     278654923981302772
+sparse_c     6
+sparse_h     5
+NumSteps     2
+Noise        Yes

@@ -1,0 +1,14 @@
+p            2
+n            16
+nv           examples/nv_p53_full.txt
+varf         examples/varF_p53_full.txt
+tt           examples/tt_p53_cancer.txt
+prop         examples/prop_p53_full.txt
+cnodes       examples/cnodes_p53_full.txt
+cedges       examples/cedges_p53_full_9edges.txt
+cost         examples/cost_p53_full.txt
+sparse_s     15764
+sparse_c     3
+sparse_h     2
+NumSteps     1
+Noise        Yes
