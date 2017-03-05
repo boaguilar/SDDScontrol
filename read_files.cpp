@@ -41,7 +41,7 @@ bool Get_all_files(string file, string& nv_file, string& varf_file,string& tt_fi
 		else if (symbol == "Noise") { Noise = data; }
 		else { cout <<"Invalid format at line "<<i<<" in the "<<file<<endl; return false; }
 	}
-	if ( !p>=2 || !NumNodes >= 1 ) {
+	if ( ( p < 2) || ( NumNodes < 1) ) {
 		cout <<"P shoud larger than 1 and n should larger than 0!" <<endl;
 		return false;
 	}
