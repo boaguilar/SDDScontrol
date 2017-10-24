@@ -32,9 +32,9 @@ void Get_tt(string tt_file, int MaxInputStates, int NumNodes, int** tt);
 
 void Get_prop(string prop_file, int NumNodes, float** prop);
 
-void read_cedges(string cedges_file, int* ActionHeads, int* ActionTails, int* v_edges);
+void read_cedges(string cedges_file, int* ActionHeads, int* ActionTails, int* v_edges, float* CEdgesWeight);
 
-void read_cnodes(string cnodes_file, int* ActionNodes, int* v_nodes);
+void read_cnodes(string cnodes_file, int* ActionNodes, int* v_nodes, float* CNodesWeight);
 
 void read_cost(string cost_file, int* Badstate, float* Wi, int NumNodes);
 

@@ -234,7 +234,7 @@ void Get_varf(string varf_file, int MaxInputs, int NumNodes, int** varf)
 	input_file_varf.close();
 }
 
-void read_cedges(string cedges_file, int* ActionHeads, int* ActionTails, int* v_edges)
+void read_cedges(string cedges_file, int* ActionHeads, int* ActionTails, int* v_edges, float* CEdgesWeight)
 {
 	ifstream input_file_cedges;
 	input_file_cedges.open(cedges_file);
@@ -243,15 +243,11 @@ void read_cedges(string cedges_file, int* ActionHeads, int* ActionTails, int* v_
 		return;
 	}
 	string line;
-	//input_file_cedges.clear();
-	//input_file_cedges.seekg(0,input_file_cedges.beg);
-	//ActionHeads = new int[NumCedges];
-	//ActionTails = new int[NumCedges];
-	//v_edges = new int[NumCedges];
+
 	int i = 0;
 	while (getline(input_file_cedges, line)) {
 		istringstream iss(line);
-		iss >> ActionHeads[i] >> ActionTails[i] >> v_edges[i];
+		iss >> ActionHeads[i] >> ActionTails[i] >> v_edges[i] >>  CEdgesWeight[i] ;
 		ActionHeads[i] --;
 		ActionTails[i] --;
 		i ++;
@@ -259,7 +255,7 @@ void read_cedges(string cedges_file, int* ActionHeads, int* ActionTails, int* v_
 	input_file_cedges.close();
 }
 
-void read_cnodes(string cnodes_file, int* ActionNodes, int* v_nodes)
+void read_cnodes(string cnodes_file, int* ActionNodes, int* v_nodes, float* CNodesWeight)
 {
 	ifstream input_file_cnodes;
 	input_file_cnodes.open(cnodes_file);
@@ -268,14 +264,11 @@ void read_cnodes(string cnodes_file, int* ActionNodes, int* v_nodes)
 		return;
 	}
 	string line;
-	//input_file_cnodes.clear();
-	//input_file_cnodes.seekg(0,input_file_cnodes.beg);
-	//ActionNodes = new int[NumCnodes];
-	//v_nodes = new int[NumCnodes];
+
 	int i = 0;
 	while (getline(input_file_cnodes, line)) {
 		istringstream iss(line);
-		iss >> ActionNodes[i] >> v_nodes[i];
+		iss >> ActionNodes[i] >> v_nodes[i] >> CNodesWeight[i];
 		ActionNodes[i] --;
 		i ++;
 	}
