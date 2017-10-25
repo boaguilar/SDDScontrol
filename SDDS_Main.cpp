@@ -116,12 +116,16 @@ int main ( int argc, char* argv[] ) {
    int *ActionNodes = new int[NumCNodes];// Ids of control nodes
    int *ActionHeads = new int[NumCEdges];
    int *ActionTails = new int[NumCEdges];
-   read_cnodes(cnodes_file, ActionNodes, v_nodes);
-   read_cedges(cedges_file, ActionHeads,  ActionTails, v_edges);
+   float *CNodesWeight = new float[NumCNodes];
+   float *CEdgesWeight = new float[NumCEdges];
+   
+   
+   read_cnodes(cnodes_file, ActionNodes, v_nodes, CNodesWeight);
+   read_cedges(cedges_file, ActionHeads,  ActionTails, v_edges, CEdgesWeight);
 
 ///////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
-cout <<"*********************************************************************"<<endl;
+   cout <<"*********************************************************************"<<endl;
    cout <<"Varf_Table: " <<endl;
    for ( int i= 0 ; i < MaxInputs; i ++ ) {
            for (int j = 0; j < NumNodes; j ++ ) {
@@ -149,12 +153,22 @@ cout <<"*********************************************************************"<<
            cout <<v_edges[i] <<" ";
    }
    cout <<endl;
+   cout<<"CNodesEdges:      ";
+   for ( int i = 0; i < NumCNodes; i++) {
+	   cout <<v_nodes[i] <<" ";
+   }
+   cout <<endl;
    cout <<"ActionNodes: ";
    for ( int i = 0; i < NumCNodes; i ++) {
 	cout << ActionNodes[i]+1<<" ";
    }
    cout <<endl;
    cout<<"v_nodes:      ";
+   for ( int i = 0; i < NumCNodes; i++) {
+	   cout <<v_nodes[i] <<" ";
+   }
+   cout <<endl;
+   cout<<"CNodesWeight:      ";
    for ( int i = 0; i < NumCNodes; i++) {
 	   cout <<v_nodes[i] <<" ";
    }
@@ -301,7 +315,7 @@ return 0;  // program will end.
       clock_t end_sparse = clock();
       double elapsed = (double) (end_sparse - start_sparse) / CLOCKS_PER_SEC;
       cout << "Running time: " << elapsed << " seconds" <<endl;
-      cout  <<"*********************************************************************"<<endl;
+      cout <<"*********************************************************************"<<endl;
       return 0;
    }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -400,7 +414,7 @@ return 0;  // program will end.
    }
    double run_time = (double)(end_policy - start_policy) / CLOCKS_PER_SEC;
    cout << "Running time: " << run_time <<" seconds" <<endl;
-output_policy.close();
+   output_policy.close();
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -443,28 +457,19 @@ float RecursiveQ(int NumNodes, int NumStates,  int **sdds_tt, int *sdds_nv, int*
 
    int *a = new int[NumNodeEdges];
 
-//   init_genrand64(UINT64_C(0x12345));
-//   std::uniform_int_distribution<long long int> dist_states(0,NumStates-1);
    for (int i = 0 ; i < c ; i++ ) {
-//	 double r = distribution(generator);
-//	 if ( r < pp ) {
-//	       long long int rand_state = dist_states(generator);
-//                cout <<"rand_state: "<< rand_state <<endl;
-//		dec2multinary ( y, NumNodes, p, rand_state);
-//	 }
-	 for ( int i = 0; i < NumNodes; i ++ ) {
+
+      for ( int i = 0; i < NumNodes; i ++ ) {
        		 y[i] = x[i];
-  	 }
+  	  }
 
-	 for (int v = 0; v < NumSteps ; v++ ) {
-
-		
-		nextstate_ia( y, z, NumNodes,  NumStates,  sdds_tt, sdds_nv, sdds_varf, sdds_prop, action, 
+	  for (int v = 0; v < NumSteps ; v++ ) {		
+         nextstate_ia( y, z, NumNodes,  NumStates,  sdds_tt, sdds_nv, sdds_varf, sdds_prop, action, 
 				NumNodeEdges, ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, v_nodes, v_edges, p);
-		for ( int i = 0; i < NumNodes; i ++ ) {
+		 for ( int i = 0; i < NumNodes; i ++ ) {
 			y[i] = z[i];
-		}
-	 }
+		 }
+	  }
 
 /*
 	for ( int i = 0; i < NumNodes; i ++ ) {
@@ -490,19 +495,19 @@ float RecursiveQ(int NumNodes, int NumStates,  int **sdds_tt, int *sdds_nv, int*
 */
 
 
-	 float minQ = 10000000;
-         for ( int action = 0 ; action < NumActions; action ++ ) {
-         	 dec2binary( a , NumNodeEdges, action );
-         	 float Q_a =  RecursiveQ ( NumNodes, NumStates, sdds_tt, sdds_nv, sdds_varf, sdds_prop, NumNodeEdges,  NumActions,
+	  float minQ = 10000000;
+      for ( int action = 0 ; action < NumActions; action ++ ) {
+          dec2binary( a , NumNodeEdges, action );
+          float Q_a =  RecursiveQ ( NumNodes, NumStates, sdds_tt, sdds_nv, sdds_varf, sdds_prop, NumNodeEdges,  NumActions,
                        ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, p, BadState, Wi, alpha, c, h-1, z, a, v_nodes,v_edges,pp,NumSteps);
-         	 if ( Q_a < minQ ) {
+          if ( Q_a < minQ ) {
                 	 minQ = Q_a ;
-                 }  
-         }
+          }  
+      }
       
-         Q = Q + minQ ;
-         R = R + cost_ija(z, BadState, NumNodes, action, NumNodeEdges, NumCNodes, ActionNodes, Wi);
-	}
+      Q = Q + minQ ;
+      R = R + cost_ija(z, BadState, NumNodes, action, NumNodeEdges, NumCNodes, ActionNodes, Wi);
+   }
    delete [] y;
    delete [] z;
    delete [] a;
@@ -804,7 +809,7 @@ void operatorTVi( int NumNodes, int NumStates,  int **sdds_tt, int *sdds_nv, int
 
 //////////////////////////////////////////////////////////////
 ///  This function compute the probabilities of going from state x to the other states  
-///   x current state ( array of 1 or 0, with a size of NumNodes)
+///   x         : current state ( array of 1 or 0, with a size of NumNodes)
 ///   pia       : array of 2^n douable elements, this will hold the probabilitites
 ///   NumNodes  : number of nodes of SDDS
 ///   MaxInputs : Maximun indegree
@@ -864,28 +869,6 @@ void prob_ia ( int *x, int NumNodes, float *Cost_ia, int NumStates,  int **sdds_
    }
 
 
-/*
-
-       cout << " action: ";
-	  for (int i = 0; i < NumNodeEdges; i ++) {
-	   cout << action[i] <<" ";
-   }
-	  cout<<endl;
-      cout << " x: ";
-   for (int i = 0; i < NumNodes; i ++) {
-	   cout << x[i] <<" ";
-   }
-   cout <<endl;
-   cout << " newx: ";
-   for (int i = 0; i < NumNodes; i ++) {
-	   cout << newx[i] <<" ";
-   }
-   cout <<endl;
-
-*/
-
-
-
    // compute z, the deterministi next state 
    for (int i = 0; i < NumNodes; i++ ) {
 
@@ -920,24 +903,6 @@ void prob_ia ( int *x, int NumNodes, float *Cost_ia, int NumStates,  int **sdds_
 	   }
    }
 
-/* 
-   cout <<" Action: ";
-   for (int i = 0; i < NumNodeEdges; i++){
-	   cout << action[i] <<" ";
-   }
-   cout<<endl;
-   cout <<" X: ";
-   for (int i = 0; i < NumNodes; i++){
-	   cout << x[i] <<" ";
-   }
-   cout<<endl;
-   cout << " z: ";
-  for (int i = 0; i < NumNodes; i ++) {
-	   cout << z[i] <<" ";
-   }
-  cout <<endl;
-   cout<<"****************************************"<<endl;
-*/
 
    for ( int state  = 0 ; state < NumStates; state++ ) {
        //dec2binary( y ,  NumNodes, state);
@@ -1021,29 +986,6 @@ void nextstate_ia (int *x, int *y, int NumNodes, int NumStates,  int **sdds_tt, 
 	   z[i] = newx[i];
    }
 
-/*
-            cout << " action: ";
-	  for (int i = 0; i < NumNodeEdges; i ++) {
-	   cout << action[i] <<" ";
-   }
-	  cout<<endl;
-      cout << " x: ";
-   for (int i = 0; i < NumNodes; i ++) {
-	   cout << x[i] <<" ";
-   }
-   cout <<endl;
-   cout <<" FreeNodes: ";
-   for ( int i = 0; i < NumNodes; i ++ ) {
-	cout << FreeNodes[i] << " ";
-   }
-   cout << endl;
-   cout << " newx: ";
-   for (int i = 0; i < NumNodes; i ++) {
-	   cout << newx[i] <<" ";
-   }
-   cout <<endl;
-   cout<<"****************************************"<<endl;
-*/
  
    // compute z, the deterministi next state 
    for (int i = 0; i < NumNodes; i++ ) {
@@ -1080,26 +1022,6 @@ void nextstate_ia (int *x, int *y, int NumNodes, int NumStates,  int **sdds_tt, 
    }
 
 
-/*
-
-   cout <<" Action: ";
-   for (int i = 0; i < NumNodeEdges; i++){
-	   cout << action[i] <<" ";
-   }
-   cout<<endl;
-   cout <<" X: ";
-   for (int i = 0; i < NumNodes; i++){
-	   cout << x[i] <<" ";
-   }
-   cout<<endl;
-   cout << " z: ";
-   for (int i = 0; i < NumNodes; i ++) {
-	   cout << z[i] <<" ";
-   }
-   cout <<endl;
-   cout<<"****************************************"<<endl;
-
-*/
 
    for ( int k=0; k<NumNodes; k++ ) {
        double r  = distribution(generator); // random generator
@@ -1196,7 +1118,7 @@ void sdds_nextstate(int *x, int *y, int NumNodes, int MaxInputs, int *sdds_nv, i
 //////////////////////////////////////////////////////
 /// Comppute the cost( or reward) when the systems
 /// transition from a current state "i" to an state "j"
-/// ehwn the action "a" was taken.
+/// when the action "a" was taken.
 /// Inputs 
 /// BinState   : Represent the sate of "j", it is an array that store the binary number
 ///              most significant digit is first (index=0)
