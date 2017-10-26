@@ -36,7 +36,7 @@ void read_cedges(string cedges_file, int* ActionHeads, int* ActionTails, int* v_
 
 void read_cnodes(string cnodes_file, int* ActionNodes, int* v_nodes, float* CNodesWeight);
 
-void read_cost(string cost_file, int* Badstate, float* Wi, int NumNodes);
+void read_cost(string cost_file, int* Badstate, float* Wi, int NumNodes); //!!! This should be changed to read_state_costs
 
 int get_lines(string file);
 
