@@ -1,0 +1,16 @@
+p            2
+n            6
+nv           Examples/T_LGL_nv6.txt
+varf         Examples/T_LGL_varF6.txt
+tt           Examples/T_LGL_tt6.txt
+prop         Examples/T_LGL_prop6.txt
+cnodes       Examples/T_LGL_cnodes6.txt
+cedges       Examples/T_LGL_cedges6.txt
+cost         Examples/T_LGL_cost6.txt
+sparse_s     -1
+sparse_c     3
+sparse_h     2
+NumSteps     1
+L            3
+W            3
+Noise        Yes
