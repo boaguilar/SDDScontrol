@@ -1086,3 +1086,58 @@ void dec2multinary ( int *con_number, int size, int base, long long int number)
 		divid_number = divid_number / base;
 	}
 }
+
+//////////////////////////////////////////////////////
+///Convert decimal index to two vector arrays 
+///Inputs  
+///action1      : Binary vector that defines active nodes or edges initially
+///action2      : Binary vector that defines active nodes or edges after L/2
+///NumNodeEdges : Number of bits (actions), size of actions1 and 2
+///ActionIndex    : Decimal number to be converted to binary
+
+///output 
+///Binstate
+/////////////////////////////////////////////////////
+void ActionHash ( int *action1, int *action2, int NumNodeEdges, int ActionIndex)
+{
+	int Idx_a1 = ActionIndex / ( NumNodeEdges + 1 );
+	int Idx_a2 = ActionIndex % ( NumNodeEdges + 1 );
+
+	for (i = 0; i < NumNodeEdges; i++) {
+		action1[i] = 0;
+		action2[i] = 0;
+	}		
+  
+	if ( Idx_a1 > 0 ){
+		action1[ Idx_a1 - 1] = 1;
+	}
+   
+    if ( Idx_a2 > 0 ){
+		action1[ Idx_a2 - 1] = 1;
+	}
+	
+//	000 000    0 + 0     0
+//	000 100    0 + 1     1
+//	000 010    0 + 2     2
+//	000 001    0 + 3     3
+	
+//  100 000	   1 , 0     4  
+//	100 100    1 , 1     5
+//	100 010    1 , 2     6
+//	100 001    1 , 3     7
+
+//  010 000	   2 , 0     8  
+//	010 100    2 , 1     9
+//	010 010    2 , 2    10
+//	010 001    2 , 3    11
+
+//  001 000	   3 , 0    12  
+//	001 100    3 , 1    13
+//	001 010    3 , 2    14
+//	001 001    3 , 3    15
+
+  
+	
+	
+}
+
