@@ -12,6 +12,7 @@ void nextstate_ia( int *x, int *y, int NumNodes, int NumStates,  int **sdds_tt, 
 		   int NumNodeEdges ,  int *ActionNodes, int NumCNodes, int *ActionHeads, int *ActionTails, int NumCEdges, int *v_nodes, int *v_edges, int p);
 void sdds_nextstate ( int *x, int *y, int NumNodes, int MaxInputs, int *sdds_nv, int ** sdds_varf, int ** sdds_tt, float ** sdds_prop, int *power2 );
 void dec2binary ( int *BinState, int NumNodes, int State) ;
+float cost_ija_LW(int *BinState, int *BadState,  int NumNodes, int *action1, int *action2, int NumNodeEdges, int NumCNodes, float * Wi, float *CNodesWeight, float *CEdgesWeight );
 float cost_ija (  int *BinState, int *BadState,  int NumNodes, int *actions, int NumNodeEdges, int NumCNodes, int *ActionNodes, float * Wi, float *CNodesWeight, float *CEdgesWeight  ); 
 void prob_ia ( int *x, int NumNodes, float *Cost_ia, int NumStates,  int **sdds_tt, int *sdds_nv, int **sdds_varf,  float ** sdds_prop,
                int *action, int NumActions,  int *ActionNodes, int NumCNodes, int *ActionHeads, int *ActionTails, int NumCEdges,int * BadState,
@@ -19,18 +20,15 @@ void prob_ia ( int *x, int NumNodes, float *Cost_ia, int NumStates,  int **sdds_
 void operatorTVi ( int NumNodes, int NumStates,  int **sdds_tt, int *sdds_nv, int **sdds_varf,  float ** sdds_prop,   int NumNodeEdges, int NumActions , 
                    int *ActionNodes, int NumCNodes, int *ActionHeads, int *ActionTails, int NumCEdges, int * BadState ,float *W, float *JV, float alpha,
                    float *newJV , int * U,  int *v_nodes, int *v_edges, int p, float pp, float *CNodesWeight, float *CEdgesWeight );
-float RecursiveQ (int NumNodes, int NumStates,  int **sdds_tt, int *sdds_nv, int** sdds_varf,  float** sdds_prop, int NumNodeEdges, int NumActions,
-                  int *ActionNodes, int NumCNodes, int *ActionHeads, int *ActionTails, int NumCEdges, int p, int * BadState, float *Wi, float alpha,
-                  int c, int h, int *x, int *action, int *v_nodes, int *v_edges, float pp, int NumSteps, float *CNodesWeight, float *CEdgesWeight );
-float RecursiveQ_Noise(int NumNodes, int NumStates,  int **sdds_tt, int *sdds_nv, int** sdds_varf,  float** sdds_prop, int NumNodeEdges,
-                 int NumActions, int *ActionNodes, int NumCNodes, int *ActionHeads, int *ActionTails, int NumCEdges, int p, int * BadState,
-                 float *Wi, float alpha,  int c, int h, int *x, int *action, int *v_nodes, int *v_edges, float pp, int NumSteps, float *CNodesWeight, float *CEdgesWeight);
-float Sequential_TwoSteps_RecursiveQ (int NumNodes, int NumStates,  int **sdds_tt, int *sdds_nv, int** sdds_varf,  float** sdds_prop, int NumNodeEdges,
-                 int NumActions, int *ActionNodes, int NumCNodes, int *ActionHeads, int *ActionTails, int NumCEdges, int p, int * BadState,
-                 float *Wi, float alpha,  int c, int h, int *x, int *action_1, int *action_2, int *v_nodes, int *v_edges, float pp, float *CNodesWeight, float *CEdgesWeight);
+
+float RecursiveQ_Noise_LW(int NumNodes, int NumStates, int  MaxInputs,  int **sdds_tt, int *sdds_nv, int** sdds_varf,  float** sdds_prop, int* power2, int NumNodeEdges, int *ActionNodes, int NumCNodes, int *ActionHeads, int *ActionTails, int NumCEdges, int p, int * BadState, float *Wi, float alpha_over_m,  int c, int h, int *x, int ActionIdx, int NumActions,  int *v_nodes, int *v_edges, float pp, int L, int W, float *CNodesWeight, float *CEdgesWeight);
+
+
+
 float normax ( float * array1,  float * array2 , int NumElements );
 long long int multinary2dec ( int *con_number, int size, int base);
 void dec2multinary ( int *con_number, int size, int base, long long int number);
+void ActionHash ( int *action1, int *action2, int NumNodeEdges, int ActionIndex) ;
 
 int main ( int argc, char* argv[] ) {
 
@@ -39,6 +37,8 @@ int main ( int argc, char* argv[] ) {
    long long int sparse_s = -1;
    int sparse_c = -1;
    int sparse_h = -1;
+   int L = 2 ;  
+   int W = 2 ;
    int NumSteps = 1;
    bool sparse_flag = false;
    string Noise = "No";
@@ -67,8 +67,7 @@ int main ( int argc, char* argv[] ) {
    }
 
    string file = argv[1];
-   bool test_get_files = Get_all_files(file,  nv_file, varf_file, tt_file,  prop_file,  cnodes_file,cedges_file,
-					cost_file,NumNodes, p, sparse_s, sparse_c,sparse_h,NumSteps,sparse_flag, Noise);
+   bool test_get_files = Get_all_files(file,  nv_file, varf_file, tt_file,  prop_file,  cnodes_file,cedges_file, cost_file,NumNodes, p, sparse_s, sparse_c,sparse_h,NumSteps,sparse_flag, Noise, L, W);
   
    if (!test_get_files) { cout<<"Double check "<<file<<endl; return 0;}
 
@@ -103,12 +102,13 @@ int main ( int argc, char* argv[] ) {
    // Parameters accions and cost
    int * BadState = new int[NumNodes];
    float * Wi = new float[NumNodes];
-   read_cost(cost_file,  BadState, Wi,  NumNodes);
+   read_state_cost(cost_file,  BadState, Wi,  NumNodes);
 
    int NumCNodes = get_lines(cnodes_file); // number of control nodes
    int NumCEdges = get_lines(cedges_file);
    int NumNodeEdges = NumCNodes + NumCEdges; // Number of control  nodes plus Number of control arrows.
-   int NumActions  = pow(p,NumNodeEdges);
+   //int NumActions  = pow(p,NumNodeEdges);
+   int NumActions  =  ( NumNodeEdges + 1 )*( NumNodeEdges + 1 ) ;
 
    int *v_nodes = new int[NumCNodes];
    int *v_edges = new int[NumCEdges];
@@ -120,6 +120,19 @@ int main ( int argc, char* argv[] ) {
    
    read_cnodes(cnodes_file, ActionNodes, v_nodes, CNodesWeight);
    read_cedges(cedges_file, ActionHeads,  ActionTails, v_edges, CEdgesWeight);
+
+   ///////////////////////////////////////////////////////////////////
+   //// This part creates an array like [2^(n-1) 2^(n-2) ... 2^1  2^0 ] 
+   //// can be put in an small function
+   int *power2 ;  // matrix used to transform from binary to decimal
+   int prod2 ; // helper variable to fill power2
+   prod2 = 1 ;
+   power2 = new int [MaxInputs] ;
+   for ( int i = 0 ; i < MaxInputs ; i++) {  // MaxInputsStates = 2^(MaxInputs)
+       power2[ MaxInputs - i - 1  ] = prod2 ;
+       prod2   =  prod2   <<  1 ;
+   }
+   ///////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -200,406 +213,163 @@ int main ( int argc, char* argv[] ) {
    int * x = new int[NumNodes] ; 
    int * y = new int[NumNodes] ;
    int * z = new int[NumNodes] ;
-   int * action = new int[NumNodeEdges];
+   int * action1 = new int[NumNodeEdges];
+   int * action2 = new int[NumNodeEdges];
+   int BestActionIdx = 0;
+   dec2binary( x, NumNodes, sparse_s ) ;
+   float alpha_over_m = alpha  ;
+   for ( int i = 1 ; i < W ; i ++ ) {
+       alpha_over_m = alpha * alpha_over_m ;         
+   }
 
 
    if ( sparse_flag && Noise == "Yes" ) {
-      clock_t start_sparse = clock();
+
       dec2multinary ( x, NumNodes, p, sparse_s);
-      int c = sparse_c;
-      int h = sparse_h ;
-      int *a = new int[NumNodeEdges] ;
-      int final_action = 0;
-
-      float minQ = 10000000; /// !!! this need to be replaced by MAX INTEGER possible
-      for ( int action = 0 ; action < NumActions; action ++ ) {
-          dec2binary( a ,NumNodeEdges, action ); // !!! should we use dec2 multinary?
-          float Q_a = RecursiveQ_Noise ( NumNodes, NumStates, sdds_tt, sdds_nv, sdds_varf, sdds_prop, NumNodeEdges,  NumActions, ActionNodes, 
-                                         NumCNodes, ActionHeads, ActionTails, NumCEdges, p, BadState, Wi, alpha, c, h, x, a, v_nodes, v_edges,pp, NumSteps, CNodesWeight, CEdgesWeight );
-          // We should create a class for  SDDS the SDDS class 
-          if ( Q_a < minQ ) {
-             minQ = Q_a ;
-             final_action = action;
-          }
-      }
-
-      for ( int i=0 ; i < NumNodes; i++) {
-          cout << x[i] << " ";
-      }
-      cout  << " ---> " ;
-      dec2multinary ( a, NumNodeEdges, p, final_action );
-      for ( int u = 0 ; u <  NumNodeEdges ; u++ ){
-          cout << " " << a[u] ;
-      }
-      cout <<endl;
-
-      clock_t end_sparse = clock();
-      double elapsed = (double) (end_sparse - start_sparse) / CLOCKS_PER_SEC;
-      cout << "Running time: " << elapsed << " seconds" <<endl;
-      cout <<"*********************************************************************"<<endl;
-      return 0;
-   }
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-   if ( sparse_flag && Noise != "Yes" ) {
       clock_t start_sparse = clock();
-      //dec2binary( x , NumNodes, sparse_s );
-	  dec2multinary ( x, NumNodes, p, sparse_s);
       int c = sparse_c;
-      int h = sparse_h ;
-      int *a = new int[NumNodeEdges] ;
-
-
-      int final_action = 0;
+      int h = sparse_h;
 
       float minQ = 10000000;
-      for ( int action = 0 ; action < NumActions; action ++ ) {
-          dec2binary( a ,NumNodeEdges, action );
-          float Q_a = RecursiveQ ( NumNodes, NumStates, sdds_tt, sdds_nv, sdds_varf, sdds_prop, NumNodeEdges,  NumActions, ActionNodes, 
-			           NumCNodes, ActionHeads, ActionTails, NumCEdges, p, BadState, Wi, alpha, c, h, x, a, v_nodes, v_edges,pp, NumSteps, CNodesWeight, CEdgesWeight);
-       
-          //cout << "--- " << Q_a ;
-          if ( Q_a < minQ ) {
-             minQ = Q_a ;
-             final_action = action;
-          }
+      for ( int a_idx  = 0; a_idx < NumActions;  a_idx ++ ) {
+          
+           float Q_a = RecursiveQ_Noise_LW( NumNodes, NumStates, MaxInputs, sdds_tt, sdds_nv, sdds_varf, sdds_prop, power2, NumNodeEdges, ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, p, BadState, Wi, alpha_over_m,  c, h, x, a_idx, NumActions, v_nodes, v_edges, pp, L, W, CNodesWeight, CEdgesWeight) ;
+
+           if ( Q_a < minQ ) {
+              minQ = Q_a;
+              BestActionIdx  = a_idx ;
+           }
       }
-      //cout << endl;
-	  for ( int i=0 ; i < NumNodes; i++) {
-         	 cout << x[i] << " ";
-	  }
-     	  cout  << " ---> " ;
-          dec2multinary ( a, NumNodeEdges, p, final_action );
-          for ( int u = 0 ; u <  NumNodeEdges ; u++ ){
-         	 cout << " " << a[u] ;
-	  }
-
-      cout <<endl;
-      clock_t end_sparse = clock();
-      double elapsed = (double) (end_sparse - start_sparse) / CLOCKS_PER_SEC;
-      cout << "Running time: " << elapsed << " seconds" <<endl;
-      cout  <<"*********************************************************************"<<endl;
-      return 0;
+      
    }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-   ofstream output_policy("full_policy.txt");   
-   clock_t start_policy = clock();
-   
-   float maxdiff = 0.0;
-   float * JV = new float[NumStates];
-   float * newJV = new float[NumStates];
-   int * U = new int[NumStates];
-
-   for ( int i = 0; i < NumStates; i++ ) {
-      JV[i] = 4.0;
-      newJV[i] = JV[i]; 
-   }
-
-   operatorTVi( NumNodes, NumStates, sdds_tt, sdds_nv, sdds_varf, sdds_prop, NumNodeEdges, NumActions,  ActionNodes, NumCNodes,
-                ActionHeads, ActionTails, NumCEdges, BadState, Wi,  JV, alpha, newJV ,  U,  v_nodes, v_edges, p, pp, CNodesWeight, CEdgesWeight); 
-   
-   while( ( normax(JV, newJV, NumStates) > tol ) && ( iter < Nmax ) ) {
-
-      for ( int i=0 ; i < NumStates; i++ ) 
-          JV[i] = newJV[i] ;
-
-      operatorTVi( NumNodes, NumStates, sdds_tt, sdds_nv, sdds_varf, sdds_prop, NumNodeEdges, NumActions,  ActionNodes, NumCNodes,
-                   ActionHeads, ActionTails, NumCEdges,BadState, Wi, JV, alpha, newJV,  U,  v_nodes, v_edges, p, pp, CNodesWeight, CEdgesWeight );
-      iter++; 
-   }
-
-   for ( int i=0 ; i < NumStates; i++ )
-          JV[i] = newJV[i] ;
-
-   operatorTVi( NumNodes, NumStates, sdds_tt, sdds_nv, sdds_varf, sdds_prop, NumNodeEdges, NumActions,  ActionNodes, NumCNodes,
-                ActionHeads, ActionTails, NumCEdges, BadState, Wi,  JV, alpha, newJV ,  U,  v_nodes, v_edges, p, pp, CNodesWeight, CEdgesWeight );
-
-   clock_t end_policy = clock();
-
-   for ( int State = 0; State < NumStates  ; State++ ) {
-     // cout <<  "  " << U[State] << endl;
-      cout << State  << "  --->  " ;
-      output_policy <<U[State]+1 << "\n";
-      dec2multinary( action, NumNodeEdges, p, U[State] );
-      for ( int a = 0 ; a <  NumNodeEdges ; a++ ) {  
-          cout << " " << action[a] ;
-      }
-
-      cout  << endl;
-   }
-   double run_time = (double)(end_policy - start_policy) / CLOCKS_PER_SEC;
-   cout << "Running time: " << run_time <<" seconds" <<endl;
-   output_policy.close();
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-   //delete [] BinState;
-   delete [] JV ;
-   delete [] newJV ;
-   delete [] U ;
-   delete [] sdds_nv ;
-   delete [] x;
-   delete [] y;
-   //system("pause");
    return 0;
 }
 
-//////////////////////////////////////////////////////////////
-// RecursiveQ  Function of Sparse Sample Algorithm
-// Inputs
-//  SDDS     : The Stochastic Discrete Dynamicl system
-//  Actions  : Action class
-//  c        : parameter of SSA algorithm
-//  h        : parameter of SSA algorithm
-//  state    : initial state of the systems
 
-float RecursiveQ(int NumNodes, int NumStates,  int **sdds_tt, int *sdds_nv, int** sdds_varf,  float** sdds_prop, int NumNodeEdges,
-                 int NumActions, int *ActionNodes, int NumCNodes, int *ActionHeads, int *ActionTails, int NumCEdges, int p, int * BadState,
-                 float *Wi, float alpha,  int c, int h, int *x, int *action, int *v_nodes, int *v_edges, float pp, int NumSteps, float *CNodesWeight, float *CEdgesWeight )
+
+float RecursiveQ_Noise_LW(int NumNodes, int NumStates, int  MaxInputs,  int **sdds_tt, int *sdds_nv, int** sdds_varf,  float** sdds_prop, int* power2, int NumNodeEdges, int *ActionNodes, int NumCNodes, int *ActionHeads, int *ActionTails, int NumCEdges, int p, int * BadState, float *Wi, float alpha_over_m,  int c, int h, int *x, int ActionIdx, int NumActions,  int *v_nodes, int *v_edges, float pp, int L, int W, float *CNodesWeight, float *CEdgesWeight) 
 {
 
-   if (h == 0) {
+    if (h == 0) {
       return 0.0 ;
-   }
+    }
 
-   float Q = 0.0 ;
-   float R = 0.0 ;
+    float Q = 0.0 ;
+    float R = 0.0 ;
 
-   int *y = new int[NumNodes] ;
-   int *z = new int [NumNodes];
+    int *y = new int[NumNodes] ;
+    int *z = new int [NumNodes];
 
-   int *a = new int[NumNodeEdges];
+    int *action1 = new int[NumNodeEdges];
+    int *action2 = new int[NumNodeEdges];
+    
+    ActionHash( action1, action2, NumNodeEdges, ActionIdx) ;
+    
 
-   for (int i = 0 ; i < c ; i++ ) {
+    for (int i = 0 ; i < c ; i++ ) { 
+        for ( int i = 0; i < NumNodes; i ++ ) {
+            y[i] = x[i];
+        }
 
-       for ( int i = 0; i < NumNodes; i ++ ) {
-           y[i] = x[i];
-       }
+        for (int v = 0; v < L/2 ; v++ ) {
+            if ( (pp > 0 ) && ( pp >= distribution(generator) ) )  {
+                random_nextstate(z, NumNodes);
+            }
+            else { nextstate_ia( y, z, NumNodes,  NumStates,  sdds_tt, sdds_nv, sdds_varf, sdds_prop, action1, NumNodeEdges, ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, v_nodes, v_edges, p);
+            }
 
-       for (int v = 0; v < NumSteps ; v++ ) {		
-           nextstate_ia( y, z, NumNodes,  NumStates,  sdds_tt, sdds_nv, sdds_varf, sdds_prop, action, 
-				NumNodeEdges, ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, v_nodes, v_edges, p);
             for ( int i = 0; i < NumNodes; i ++ ) {
                 y[i] = z[i];
             }
-       }
+        }
 
+        for (int v = 0; v < ( L - L/2) ; v++ ) {
+           if ( ( pp > 0 ) && ( pp >= distribution(generator) ) ) {
+               random_nextstate(z, NumNodes);
+           }
+           else { nextstate_ia( y, z, NumNodes,  NumStates,  sdds_tt, sdds_nv, sdds_varf, sdds_prop, action2, NumNodeEdges, ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, v_nodes, v_edges, p);
+           }
 
-       float minQ = 10000000;
-       for ( int action = 0 ; action < NumActions; action ++ ) {
-           dec2binary( a , NumNodeEdges, action );
-           float Q_a =  RecursiveQ ( NumNodes, NumStates, sdds_tt, sdds_nv, sdds_varf, sdds_prop, NumNodeEdges,  NumActions,
-                       ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, p, BadState, Wi, alpha, c, h-1, z, a, v_nodes,v_edges,pp,NumSteps, CNodesWeight, CEdgesWeight );
-           if ( Q_a < minQ ) {
-               minQ = Q_a ;
-           }  
-       }
-      
-       Q = Q + minQ ;
-       R = R + cost_ija(z, BadState, NumNodes, action, NumNodeEdges, NumCNodes, ActionNodes, Wi, CNodesWeight, CEdgesWeight);
-   }
-   delete [] y;
-   delete [] z;
-   delete [] a;
-   return ( R + alpha*Q ) / c ; 
+           for ( int i = 0; i < NumNodes; i ++ ) {
+              y[i] = z[i];
+           }
+        }
+
+        for (int v = 0; v < ( W - L) ; v++ ) {
+           if ( ( pp > 0 ) && ( pp >= distribution(generator) ) )  {
+               random_nextstate(z, NumNodes);
+           }
+           else { sdds_nextstate( y, z, NumNodes, MaxInputs, sdds_nv, sdds_varf, sdds_tt,  sdds_prop, power2 ) ;
+           }
+
+           for ( int i = 0; i < NumNodes; i ++ ) {
+               y[i] = z[i];
+           }
+        }
+
+        float minQ = 10000000;
+        for ( int a_idx  = 0; a_idx < NumActions;  a_idx ++ ) {
+            float Q_a = RecursiveQ_Noise_LW(NumNodes, NumStates, MaxInputs, sdds_tt, sdds_nv, sdds_varf, sdds_prop, power2, NumNodeEdges, ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, p, BadState, Wi, alpha_over_m, c, h-1, z, a_idx, NumActions,  v_nodes, v_edges,  pp, L,  W, CNodesWeight, CEdgesWeight) ;
+            if ( Q_a < minQ ) {
+                minQ = Q_a ;
+            }
+        }
+        Q = Q + minQ ;
+        R = R + cost_ija_LW(z, BadState, NumNodes, action1, action2,NumNodeEdges, NumCNodes, Wi, CNodesWeight, CEdgesWeight );
+       
+    }
+
+    delete [] y;
+    delete [] z;
+    delete [] action1;
+    delete [] action2;
+
+    
+    return ( R + alpha_over_m*Q ) / c ;
 }
 
-float RecursiveQ_Noise(int NumNodes, int NumStates,  int **sdds_tt, int *sdds_nv, int** sdds_varf,  float** sdds_prop, int NumNodeEdges,
-                 int NumActions, int *ActionNodes, int NumCNodes, int *ActionHeads, int *ActionTails, int NumCEdges, int p, int * BadState,
-                 float *Wi, float alpha,  int c, int h, int *x, int *action, int *v_nodes, int *v_edges, float pp, int NumSteps, float *CNodesWeight, float *CEdgesWeight )
-{
 
-   if (h == 0) {
-      return 0.0 ;
+//////////////////////////////////////////////////////
+/// Comppute the cost( or reward) when the systems
+/// transition from a current state "i" to an state "j" 
+/// after W steps with L steps drug duration
+/// ehwn the action "a" was taken.
+/// Inputs 
+/// BinState   : Represent the sate of "j", it is an array that store the binary number
+///              most significant digit is first (index=0)
+/// NumNodes   : Number of nodes (size of BinState)
+/// actions    : Vector that stores the states of nodes and edges of
+///              of an specific action
+/// NumActions : Number of control nodes + N of control edlges
+/// NumCNodes  : Number of control nodes
+float cost_ija_LW(int *BinState, int *BadState,  int NumNodes, int *action1, int *action2, int NumNodeEdges, int NumCNodes, float * Wi, float *CNodesWeight, float *CEdgesWeight ) {
+
+   ///// Parameters to compute Cost
+   float  Cost = 0.0 ;
+
+   //////////////////////////////////////////////// 
+
+   // cost of control nodes
+   for ( int i = 0 ; i < NumCNodes; i++ ) {
+      Cost = Cost +  CNodesWeight[i] * action1[i] ;
+      Cost = Cost +  CNodesWeight[i] * action2[i] ;
    }
 
-   float Q = 0.0 ;
-   float R = 0.0 ;
+   // cost of control edges
+   for ( int i = NumCNodes ; i < NumNodeEdges  ; i++ ) {
+      Cost = Cost +  CEdgesWeight[ i - NumCNodes] * action1[i] ;
+      Cost = Cost +  CEdgesWeight[ i - NumCNodes] * action2[i] ;
+   }
 
-   int *y = new int[NumNodes] ;
-   int *z = new int [NumNodes];
-
-   int *a = new int[NumNodeEdges];
-
-   for (int i = 0 ; i < c ; i++ ) {
-      for ( int i = 0; i < NumNodes; i ++ ) {
-          y[i] = x[i];
-      }	
-
-      for (int v = 0; v < NumSteps ; v++ ) {
-          double r = distribution(generator);
-          if ( r < pp) {
-              random_nextstate(z, NumNodes);
-          }
-          else {
-              nextstate_ia( y, z, NumNodes,  NumStates,  sdds_tt, sdds_nv, sdds_varf, sdds_prop, action, 
-						NumNodeEdges, ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, v_nodes, v_edges, p);
-          }
-          for ( int i = 0; i < NumNodes; i ++ ) {
-             y[i] = z[i];
-          }
+   // cost of bad state
+   for ( int  i = 0; i < NumNodes; i++){
+      if ( BinState[i] != BadState[i]) {
+         Cost = Cost + Wi[i] ;
       }
-
-
-
-      float minQ = 10000000;
-      for ( int action = 0 ; action < NumActions; action ++ ) {
-          dec2binary( a , NumNodeEdges, action );
-           float Q_a =  RecursiveQ ( NumNodes, NumStates, sdds_tt, sdds_nv, sdds_varf, sdds_prop, NumNodeEdges,  NumActions,
-                       ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, p, BadState, Wi, alpha, c, h-1, z, a, v_nodes, v_edges, pp,NumSteps, CNodesWeight, CEdgesWeight );  // !!!!!!! No deberia ser RecursiceQ_noise ???????
-          if ( Q_a < minQ ) {
-              minQ = Q_a ;
-          }  
-      }
-      
-      Q = Q + minQ ;
-      R = R + cost_ija(z, BadState, NumNodes, action, NumNodeEdges, NumCNodes, ActionNodes, Wi, CNodesWeight, CEdgesWeight);
-   }
-   delete [] y;
-   delete [] z;
-   delete [] a;
-   return ( R + alpha*Q ) / c ; 
-}
-
-float Sequential_TwoSteps_RecursiveQ(int NumNodes, int NumStates,  int **sdds_tt, int *sdds_nv, int** sdds_varf,  float** sdds_prop, int NumNodeEdges,
-                 int NumActions, int *ActionNodes, int NumCNodes, int *ActionHeads, int *ActionTails, int NumCEdges, int p, int * BadState,
-                 float *Wi, float alpha,  int c, int h, int *x, int *action_1, int *action_2, int *v_nodes, int *v_edges, float pp, float *CNodesWeight, float *CEdgesWeight )
-{
-
-   if (h == 0) {
-      return 0.0 ;
-   }
-
-   float Q = 0.0 ;
-   float R = 0.0 ;
-
-   int *y = new int[NumNodes] ;
-   int *z = new int [NumNodes];
-   int *q = new int [NumNodes];
-   for ( int i = 0; i < NumNodes; i ++ ) {
-	q[i] = x[i];
-   }
-//   int *q = new int [NumNodes];
-//   int *m = new int [NumNodes];
-   int *a = new int[NumNodeEdges];
-   int *b = new int[NumNodeEdges];
+   }   
    
-//   std::uniform_int_distribution<long long int> dist_states(0,NumStates-1);
-   for (int i = 0 ; i < c ; i++ ) {
-//	 double r = distribution(generator);
-//	 if ( r < pp ) {
-//	       long long int rand_state = dist_states(generator);
-//                cout <<"rand_state: "<< rand_state <<endl;
-//		dec2multinary ( y, NumNodes, p, rand_state);
-//	 }
-//	 else {
-
-		nextstate_ia( q, y, NumNodes,  NumStates,  sdds_tt, sdds_nv, sdds_varf, sdds_prop, action_1, 
-				NumNodeEdges, ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, v_nodes, v_edges, p);
-//	 }
-/*
-	for ( int i = 0; i < NumNodes; i ++ ) {
-		z[i] = y[i];
-	}
-	long long int number = multinary2dec( y, NumNodes, p); 
-	cout << "dec: " << number;
-*/
-	cout << "Action_1: ";
-	for ( int i = 0; i < NumNodeEdges; i ++ ) {
-		cout << action_1[i] << " ";
-	}
-//	cout <<"State(x): ";
-//	for ( int i = 0; i < NumNodes; i ++ ) {
-//		cout << x[i] <<" ";
-//	}
-	cout << " State: ";
-	for ( int i = 0; i < NumNodes; i ++ ) {
-		cout << y[i] << " ";
-	}
-	cout << "Step: "<< i+1 << endl;
-
-
-//         r = distribution (generator);
-//         if ( r < pp ) {
-//		long long int rand_state = dist_states (generator);
-//                dec2multinary (z, NumNodes, p, rand_state);
-//       	}
-//	else {
-		nextstate_ia( y, z, NumNodes, NumStates, sdds_tt, sdds_nv, sdds_varf, sdds_prop, action_2,
-				NumNodeEdges, ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, v_nodes, v_edges, p);
-//	}
-
-		for ( int i = 0; i < NumNodes; i ++) {
-			q[i] = z[i];
-		}
-		cout <<"Action_2: ";
-		for ( int i = 0; i < NumNodeEdges; i ++ ) {
-			cout << action_2[i]<<" ";
-		}
-		cout << " State: ";
-		for (int i = 0; i < NumNodes; i ++ ) {
-			cout << z[i] << " ";
-		}
-		cout << "Step: "<<i+1 <<endl;
-/*
-	r = distribution (generator);
-	if ( r < pp ) {
-		int rand_state = dist_states(generator);
-		dec2multinary ( q, NumNodes, p, rand_state);
-	}
-        else {
-		nextstate_ia( z, q, NumNodes, NumStates, sdds_tt, sdds_nv, sdds_varf, sdds_prop, action,
-				NumNodeEdges, ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, v_nodes, v_edges, p);
-	}
-
-	if ( r < pp ) {
-		int rand_state = dist_states (generator);
-		dec2multinary ( m, NumNodes, p, rand_state);
-	}
-	else {
-		nextstate_ia ( q, m, NumNodes, NumStates, sdds_tt, sdds_nv, sdds_varf, sdds_prop, action,
-				NumNodeEdges, ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, v_nodes, v_edges, p);
-	}
-*/
-/*
-         float minQ = 10000000;
-	 int action_i = 1;
-	 int action_j = 1;
-         for ( int i = 0 ; i < NumNodeEdges; i ++ ) {
-         	 dec2binary( a , NumNodeEdges, action_i );
-		 action_i = action_i*2;
-		 action_j = 1;
-		 for ( int j = 0; j < NumNodeEdges; j ++ ) {
-		 	dec2binary( b , NumNodeEdges, action_j );
-		 	action_j = action_j*2;
-         	 	float Q_a =  Sequential_TwoSteps_RecursiveQ ( NumNodes, NumStates, sdds_tt, sdds_nv, sdds_varf, sdds_prop, NumNodeEdges,  NumActions,
-					ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, p, BadState, Wi, alpha, c, h-1, z, a, b, v_nodes, v_edges, pp);
-         		if ( Q_a < minQ ) {
-                		minQ = Q_a ;
-			}  
-		 }
-	 }
-         Q = Q + minQ ;
-*/}
-         R = R + cost_ija(z, BadState, NumNodes, action_2, NumNodeEdges, NumCNodes, ActionNodes, Wi, CNodesWeight, CEdgesWeight);
-//    }
-
-   delete [] y;
-   delete [] z;
-   delete [] q;
-//   delete [] m;
-   delete [] a;
-   delete [] b;
-   return R;
-//   return ( R + alpha*Q ) / c ; 
+   return Cost ;
 }
 
 //////////////////////////////////////////////////////////////
@@ -854,10 +624,10 @@ void nextstate_ia (int *x, int *y, int NumNodes, int NumStates,  int **sdds_tt, 
        if ( FreeNodes[i] == 1) {
            int nv = sdds_nv[i];
            int* new_function = new int[nv];
-		   for (int h = 0; h < nv; h ++) {
+           for (int h = 0; h < nv; h ++) {
 			  // cout<< "sdds_varf[h][i]: "<< sdds_varf[h][i] - 1<< "  h: " << h << "  i:" << i<<endl;
 			   new_function[h] = newx[ sdds_varf[h][i] ];
-		   }
+           }
       	   long long int new_index = multinary2dec ( new_function, nv, p);
            z[i] = sdds_tt[new_index][i];
            delete [] new_function;
@@ -1096,48 +866,24 @@ void dec2multinary ( int *con_number, int size, int base, long long int number)
 ///ActionIndex    : Decimal number to be converted to binary
 
 ///output 
-///Binstate
+///Binstate of action1 and action 2
 /////////////////////////////////////////////////////
 void ActionHash ( int *action1, int *action2, int NumNodeEdges, int ActionIndex)
 {
-	int Idx_a1 = ActionIndex / ( NumNodeEdges + 1 );
-	int Idx_a2 = ActionIndex % ( NumNodeEdges + 1 );
+   int Idx_a1 = ActionIndex / ( NumNodeEdges + 1 );
+   int Idx_a2 = ActionIndex % ( NumNodeEdges + 1 );
 
-	for (i = 0; i < NumNodeEdges; i++) {
-		action1[i] = 0;
-		action2[i] = 0;
-	}		
+   for (int i = 0; i < NumNodeEdges; i++) {
+      action1[i] = 0;
+      action2[i] = 0;
+   }		
   
-	if ( Idx_a1 > 0 ){
-		action1[ Idx_a1 - 1] = 1;
-	}
+   if ( Idx_a1 > 0 ){
+      action1[ Idx_a1 - 1] = 1;
+   }
    
-    if ( Idx_a2 > 0 ){
-		action1[ Idx_a2 - 1] = 1;
-	}
-	
-//	000 000    0 + 0     0
-//	000 100    0 + 1     1
-//	000 010    0 + 2     2
-//	000 001    0 + 3     3
-	
-//  100 000	   1 , 0     4  
-//	100 100    1 , 1     5
-//	100 010    1 , 2     6
-//	100 001    1 , 3     7
-
-//  010 000	   2 , 0     8  
-//	010 100    2 , 1     9
-//	010 010    2 , 2    10
-//	010 001    2 , 3    11
-
-//  001 000	   3 , 0    12  
-//	001 100    3 , 1    13
-//	001 010    3 , 2    14
-//	001 001    3 , 3    15
-
-  
-	
-	
+   if ( Idx_a2 > 0 ){
+      action2[ Idx_a2 - 1] = 1;
+   }
 }
 

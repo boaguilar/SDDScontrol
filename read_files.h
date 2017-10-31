@@ -18,11 +18,7 @@
 
 using namespace std;
 
-
-
-bool Get_all_files(string file, string& nv_file, string& varf_file,string& tt_file,string& prop_file,string& cnodes_file, string& cedges_file,
-
-				   string& cost_file,int& NumNodes,int& p,long long int& sparse_s,int& sparse_c,int& sparse_h,int& NumSteps, bool& sparse_flag, string& Noise);
+bool Get_all_files(string file, string& nv_file, string& varf_file,string& tt_file,string& prop_file,string& cnodes_file, string& cedges_file, string& cost_file,int& NumNodes,int& p,long long int& sparse_s,int& sparse_c,int& sparse_h,int& NumSteps, bool& sparse_flag, string& Noise, int& L, int& W);
 
 void Get_nv_and_maxinput(string nv_file, int& MaxInputs, int NumNodes, int* nv);
 
@@ -36,10 +32,8 @@ void read_cedges(string cedges_file, int* ActionHeads, int* ActionTails, int* v_
 
 void read_cnodes(string cnodes_file, int* ActionNodes, int* v_nodes, float* CNodesWeight);
 
-void read_cost(string cost_file, int* Badstate, float* Wi, int NumNodes); //!!! This should be changed to read_state_costs
+void read_state_cost(string cost_file, int* Badstate, float* Wi, int NumNodes); //!!! This should be changed to read_state_costs
 
 int get_lines(string file);
-
-
 
 #endif

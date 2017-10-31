@@ -1,7 +1,6 @@
 #include "read_files.h"
 
-bool Get_all_files(string file, string& nv_file, string& varf_file,string& tt_file,string& prop_file,string& cnodes_file, string& cedges_file,
-				   string& cost_file,int& NumNodes,int& p,long long int& sparse_s,int& sparse_c,int& sparse_h, int& NumSteps, bool& sparse_flag, string& Noise)
+bool Get_all_files(string file, string& nv_file, string& varf_file,string& tt_file,string& prop_file,string& cnodes_file, string& cedges_file, string& cost_file,int& NumNodes,int& p,long long int& sparse_s,int& sparse_c,int& sparse_h, int& NumSteps, bool& sparse_flag, string& Noise, int& L, int& W)
 {
 	ifstream input_file;
 	input_file.open(file.c_str());
@@ -12,7 +11,7 @@ bool Get_all_files(string file, string& nv_file, string& varf_file,string& tt_fi
 	string line;
 	int NumLines = 0;
 	while (getline(input_file, line)) { NumLines ++ ; }
-	if (NumLines != 9 && NumLines != 14) {
+	if (NumLines != 11 && NumLines != 16) {
 		cout << file <<" file should contain 9 or 14 lines!"<<endl;
 		return false;
 	}
@@ -39,13 +38,19 @@ bool Get_all_files(string file, string& nv_file, string& varf_file,string& tt_fi
 		else if (symbol == "sparse_h") { sparse_h = stoi(data); }
 		else if (symbol == "NumSteps") { NumSteps = stoi(data); }
 		else if (symbol == "Noise") { Noise = data; }
+                else if (symbol == "L") { L = stoi(data); }
+                else if (symbol == "W") { W = stoi(data); }
 		else { cout <<"Invalid format at line "<<i<<" in the "<<file<<endl; return false; }
 	}
 	if ( ( p < 2) || ( NumNodes < 1) ) {
 		cout <<"P shoud larger than 1 and n should larger than 0!" <<endl;
 		return false;
 	}
-	if( NumLines == 14 && sparse_s >=0 && sparse_c >= 1 && sparse_h >= 1 && NumSteps >= 1 ) {
+        if ( (L > W) || (W > NumNodes) || (L < 2) ) {
+                cout <<"double check L and W."<<endl;
+                return false;
+        }
+	if( NumLines == 16 && sparse_s >=0 && sparse_c >= 1 && sparse_h >= 1 && NumSteps >= 1 ) {
 		sparse_flag = true;
 	}
 	return true;
@@ -89,7 +94,7 @@ void Get_nv_and_maxinput(string nv_file, int& MaxInputs, int NumNodes, int* nv)
 		}
 	}
 	if ( i != 0 ) {
-		cout << nv_file << " does not a 1 X " <<NumNodes << " file!!!"<<endl;
+		cout << nv_file << " is not a 1 X " <<NumNodes << " file!!!"<<endl;
 	}
 	input_file_nv.close();
 }
@@ -275,7 +280,7 @@ void read_cnodes(string cnodes_file, int* ActionNodes, int* v_nodes, float* CNod
 	input_file_cnodes.close();
 }
 
-void read_cost(string cost_file, int* Badstate, float* Wi, int NumNodes)
+void read_state_cost(string cost_file, int* Badstate, float* Wi, int NumNodes)
 {
 	ifstream input_file_cost;
 	input_file_cost.open(cost_file);
