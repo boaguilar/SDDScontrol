@@ -215,12 +215,6 @@ int main ( int argc, char* argv[] ) {
    int * z = new int[NumNodes] ;
    int * action1 = new int[NumNodeEdges];
    int * action2 = new int[NumNodeEdges];
-   int BestActionIdx = 0;
-   dec2binary( x, NumNodes, sparse_s ) ;
-   float alpha_over_m = alpha  ;
-   for ( int i = 1 ; i < W ; i ++ ) {
-       alpha_over_m = alpha * alpha_over_m ;         
-   }
 
 
    if ( sparse_flag && Noise == "Yes" ) {
@@ -229,6 +223,13 @@ int main ( int argc, char* argv[] ) {
       clock_t start_sparse = clock();
       int c = sparse_c;
       int h = sparse_h;
+      int BestActionIdx = 0;
+      float alpha_over_m = alpha  ;
+
+      for ( int i = 1 ; i < W ; i ++ ) {
+         alpha_over_m = alpha * alpha_over_m ;         
+      }
+
 
       float minQ = 10000000;
       for ( int a_idx  = 0; a_idx < NumActions;  a_idx ++ ) {
@@ -240,6 +241,26 @@ int main ( int argc, char* argv[] ) {
               BestActionIdx  = a_idx ;
            }
       }
+
+
+      // displaying
+
+      ActionHash(action1,action2,NumNodeEdges,BestActionIdx);
+      cout << "state :  " ;
+      for ( int i = 0; i < NumNodes; i++ ) {
+          cout << x[i] << " ";
+      } cout << endl ;
+      cout << "action1 : "; 
+      for ( int i = 0; i < NumNodes; i++ ) {
+          cout << action1[i] << " ";
+      } cout << endl ;
+      cout << "action2 : ";
+      for ( int i = 0; i < NumNodes; i++ ) {
+          cout << action2[i] << " ";
+      } cout << endl ;
+ 
+
+      
       
    }
 
