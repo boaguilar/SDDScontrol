@@ -21,7 +21,7 @@ void operatorTVi ( int NumNodes, int NumStates,  int **sdds_tt, int *sdds_nv, in
                    int *ActionNodes, int NumCNodes, int *ActionHeads, int *ActionTails, int NumCEdges, int * BadState ,float *W, float *JV, float alpha,
                    float *newJV , int * U,  int *v_nodes, int *v_edges, int p, float pp, float *CNodesWeight, float *CEdgesWeight );
 
-float RecursiveQ_Noise_LW(int NumNodes, int NumStates, int  MaxInputs,  int **sdds_tt, int *sdds_nv, int** sdds_varf,  float** sdds_prop, int* power2, int NumNodeEdges, int *ActionNodes, int NumCNodes, int *ActionHeads, int *ActionTails, int NumCEdges, int p, int * BadState, float *Wi, float alpha_over_m,  int c, int h, int *x, int ActionIdx, int NumActions,  int *v_nodes, int *v_edges, float pp, int L, int W, float *CNodesWeight, float *CEdgesWeight);
+float RecursiveQ_Noise_LW(int NumNodes, int NumStates, int  MaxInputs,  int **sdds_tt, int *sdds_nv, int** sdds_varf,  float** sdds_prop, int* power2, int NumNodeEdges, int *ActionNodes, int NumCNodes, int *ActionHeads, int *ActionTails, int NumCEdges, int p, int * BadState, float *Wi, float alpha_over_m,  int c, int h, int *x, int ActionIdx, int NumActions,  int *v_nodes, int *v_edges, float pp, int Lo, int L, int W, float *CNodesWeight, float *CEdgesWeight);
 
 
 
@@ -37,6 +37,7 @@ int main ( int argc, char* argv[] ) {
    long long int sparse_s = -1;
    int sparse_c = -1;
    int sparse_h = -1;
+   int Lo = 0 ;
    int L = 2 ;  
    int W = 2 ;
    int NumSteps = 1;
@@ -67,7 +68,7 @@ int main ( int argc, char* argv[] ) {
    }
 
    string file = argv[1];
-   bool test_get_files = Get_all_files(file,  nv_file, varf_file, tt_file,  prop_file,  cnodes_file,cedges_file, cost_file,NumNodes, p, sparse_s, sparse_c,sparse_h,NumSteps,sparse_flag, Noise, L, W);
+   bool test_get_files = Get_all_files(file,  nv_file, varf_file, tt_file,  prop_file,  cnodes_file,cedges_file, cost_file,NumNodes, p, sparse_s, sparse_c,sparse_h,NumSteps,sparse_flag, Noise,Lo, L, W);
   
    if (!test_get_files) { cout<<"Double check "<<file<<endl; return 0;}
 
@@ -107,8 +108,13 @@ int main ( int argc, char* argv[] ) {
    int NumCNodes = get_lines(cnodes_file); // number of control nodes
    int NumCEdges = get_lines(cedges_file);
    int NumNodeEdges = NumCNodes + NumCEdges; // Number of control  nodes plus Number of control arrows.
-   //int NumActions  = pow(p,NumNodeEdges);
-   int NumActions  =  ( NumNodeEdges + 1 )*( NumNodeEdges + 1 ) ;
+   int NumActions = 0; 
+   if ( sparse_flag && (Lo > 0) ) {
+        NumActions  =  ( NumNodeEdges + 1 )*( NumNodeEdges + 1 ) ;
+   }
+   else {
+        NumActions  = pow(p,NumNodeEdges) ;
+   }
 
    int *v_nodes = new int[NumCNodes];
    int *v_edges = new int[NumCEdges];
@@ -213,11 +219,16 @@ int main ( int argc, char* argv[] ) {
    int * x = new int[NumNodes] ; 
    int * y = new int[NumNodes] ;
    int * z = new int[NumNodes] ;
+   int * action = new int[NumNodeEdges];
    int * action1 = new int[NumNodeEdges];
    int * action2 = new int[NumNodeEdges];
 
 
-   if ( sparse_flag && Noise == "Yes" ) {
+   if ( sparse_flag  ) {
+     
+      if ( Noise != "Yes" ) {
+          pp = 0.0;
+      }
 
       dec2multinary ( x, NumNodes, p, sparse_s);
       clock_t start_sparse = clock();
@@ -234,7 +245,7 @@ int main ( int argc, char* argv[] ) {
       float minQ = 10000000;
       for ( int a_idx  = 0; a_idx < NumActions;  a_idx ++ ) {
           
-           float Q_a = RecursiveQ_Noise_LW( NumNodes, NumStates, MaxInputs, sdds_tt, sdds_nv, sdds_varf, sdds_prop, power2, NumNodeEdges, ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, p, BadState, Wi, alpha_over_m,  c, h, x, a_idx, NumActions, v_nodes, v_edges, pp, L, W, CNodesWeight, CEdgesWeight) ;
+           float Q_a = RecursiveQ_Noise_LW( NumNodes, NumStates, MaxInputs, sdds_tt, sdds_nv, sdds_varf, sdds_prop, power2, NumNodeEdges, ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, p, BadState, Wi, alpha_over_m,  c, h, x, a_idx, NumActions, v_nodes, v_edges, pp, Lo, L, W, CNodesWeight, CEdgesWeight) ;
 
            if ( Q_a < minQ ) {
               minQ = Q_a;
@@ -244,32 +255,100 @@ int main ( int argc, char* argv[] ) {
 
 
       // displaying
-
-      ActionHash(action1,action2,NumNodeEdges,BestActionIdx);
-      cout << "state :  " ;
-      for ( int i = 0; i < NumNodes; i++ ) {
-          cout << x[i] << " ";
-      } cout << endl ;
-      cout << "action1 : "; 
-      for ( int i = 0; i < NumNodes; i++ ) {
-          cout << action1[i] << " ";
-      } cout << endl ;
-      cout << "action2 : ";
-      for ( int i = 0; i < NumNodes; i++ ) {
-          cout << action2[i] << " ";
-      } cout << endl ;
- 
-
-      
+      if ( Lo > 0 ) { 
+          ActionHash(action1,action2,NumNodeEdges,BestActionIdx);
+          cout << "state :  " ;
+          for ( int i = 0; i < NumNodes; i++ ) {
+              cout << x[i] << " ";
+          } cout << endl ;
+          cout << "action1 : "; 
+          for ( int i = 0; i < NumNodes; i++ ) {
+              cout << action1[i] << " ";
+          } cout << endl ;
+          cout << "action2 : ";
+          for ( int i = 0; i < NumNodes; i++ ) {
+              cout << action2[i] << " ";
+          } cout << endl ;
+      } 
+      else {
+          dec2binary( action1,  NumNodeEdges, BestActionIdx ) ;
+          for ( int i = 0; i < NumNodes; i++ ) {
+              cout << x[i] << " ";
+          } cout << endl ;
+          cout << " -->  ";
+          for ( int i = 0; i < NumNodes; i++ ) {
+              cout << action1[i] << " ";
+          } cout << endl ; 
+      }
       
    }
+   else { // exact method 
+       ofstream output_policy("full_policy.txt");
+       clock_t start_policy = clock();
+
+       float maxdiff = 0.0;
+       float * JV = new float[NumStates];
+       float * newJV = new float[NumStates];
+       int * U = new int[NumStates];       
+ 
+       for ( int i = 0; i < NumStates; i++ ) {
+          JV[i] = 0.0;   // What this value ?? shoulnt it be 0?
+          newJV[i] = JV[i];
+       }
+   
+       operatorTVi( NumNodes, NumStates, sdds_tt, sdds_nv, sdds_varf, sdds_prop, NumNodeEdges, NumActions,  ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, BadState, Wi,  JV, alpha, newJV ,  U,  v_nodes, v_edges, p, pp, CNodesWeight, CEdgesWeight );
+
+       while( ( normax(JV, newJV, NumStates) > tol ) && ( iter < Nmax ) ) {
+
+           for ( int i=0 ; i < NumStates; i++ )
+               JV[i] = newJV[i] ;
+
+           operatorTVi( NumNodes, NumStates, sdds_tt, sdds_nv, sdds_varf, sdds_prop, NumNodeEdges, NumActions,  ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges,BadState, Wi, JV, alpha, newJV ,  U ,  v_nodes, v_edges, p, pp, CNodesWeight, CEdgesWeight );
+
+           iter++;
+       }
+
+       for ( int i=0 ; i < NumStates; i++ )
+          JV[i] = newJV[i] ;
+      
+       operatorTVi( NumNodes, NumStates, sdds_tt, sdds_nv, sdds_varf, sdds_prop, NumNodeEdges, NumActions,  ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, BadState, Wi,  JV, alpha, newJV ,  U,  v_nodes, v_edges, p, pp, CNodesWeight, CEdgesWeight );
+
+       clock_t end_policy = clock();
+
+       for ( int State = 0; State < NumStates  ; State++ ) {
+            cout << State  << "  --->  " ;
+            output_policy <<U[State]+1 << "\n";
+            dec2multinary( action, NumNodeEdges, p, U[State] );
+            for ( int a = 0 ; a <  NumNodeEdges ; a++ ) {
+                 cout << " " << action[a] ;
+            }
+            cout  << endl;
+       }
+       double run_time = (double)(end_policy - start_policy) / CLOCKS_PER_SEC;
+       cout << "Running time: " << run_time <<" seconds" <<endl;
+       output_policy.close();
+
+       delete [] JV ;
+       delete [] newJV ;
+       delete [] U ;
+
+   }
+
+
+   delete [] x ;
+   delete [] y ;
+   delete [] z ;
+   delete [] action ;
+   delete [] action1 ;
+   delete [] action2 ;
+
 
    return 0;
 }
 
 
 
-float RecursiveQ_Noise_LW(int NumNodes, int NumStates, int  MaxInputs,  int **sdds_tt, int *sdds_nv, int** sdds_varf,  float** sdds_prop, int* power2, int NumNodeEdges, int *ActionNodes, int NumCNodes, int *ActionHeads, int *ActionTails, int NumCEdges, int p, int * BadState, float *Wi, float alpha_over_m,  int c, int h, int *x, int ActionIdx, int NumActions,  int *v_nodes, int *v_edges, float pp, int L, int W, float *CNodesWeight, float *CEdgesWeight) 
+float RecursiveQ_Noise_LW(int NumNodes, int NumStates, int  MaxInputs,  int **sdds_tt, int *sdds_nv, int** sdds_varf,  float** sdds_prop, int* power2, int NumNodeEdges, int *ActionNodes, int NumCNodes, int *ActionHeads, int *ActionTails, int NumCEdges, int p, int * BadState, float *Wi, float alpha_over_m,  int c, int h, int *x, int ActionIdx, int NumActions,  int *v_nodes, int *v_edges, float pp, int Lo, int L, int W, float *CNodesWeight, float *CEdgesWeight) 
 {
 
     if (h == 0) {
@@ -284,16 +363,21 @@ float RecursiveQ_Noise_LW(int NumNodes, int NumStates, int  MaxInputs,  int **sd
 
     int *action1 = new int[NumNodeEdges];
     int *action2 = new int[NumNodeEdges];
-    
-    ActionHash( action1, action2, NumNodeEdges, ActionIdx) ;
-    
+   
+    if ( Lo > 0 ) { 
+         ActionHash( action1, action2, NumNodeEdges, ActionIdx) ;
+    }
+    else { // se podria reducir el codigo haciendo que ActionHash lea Lo
+         dec2binary( action2,  NumNodeEdges, ActionIdx ) ;  
+         for (int i = 0; i < NumNodeEdges;  i++ ) { action1[i] = 0 ; }  
+    }      
 
     for (int i = 0 ; i < c ; i++ ) { 
         for ( int i = 0; i < NumNodes; i ++ ) {
             y[i] = x[i];
         }
 
-        for (int v = 0; v < L/2 ; v++ ) {
+        for (int v = 0; v < Lo ; v++ ) {
             if ( (pp > 0 ) && ( pp >= distribution(generator) ) )  {
                 random_nextstate(z, NumNodes);
             }
@@ -305,7 +389,7 @@ float RecursiveQ_Noise_LW(int NumNodes, int NumStates, int  MaxInputs,  int **sd
             }
         }
 
-        for (int v = 0; v < ( L - L/2) ; v++ ) {
+        for (int v = 0; v < ( L - Lo) ; v++ ) {
            if ( ( pp > 0 ) && ( pp >= distribution(generator) ) ) {
                random_nextstate(z, NumNodes);
            }
@@ -331,7 +415,7 @@ float RecursiveQ_Noise_LW(int NumNodes, int NumStates, int  MaxInputs,  int **sd
 
         float minQ = 10000000;
         for ( int a_idx  = 0; a_idx < NumActions;  a_idx ++ ) {
-            float Q_a = RecursiveQ_Noise_LW(NumNodes, NumStates, MaxInputs, sdds_tt, sdds_nv, sdds_varf, sdds_prop, power2, NumNodeEdges, ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, p, BadState, Wi, alpha_over_m, c, h-1, z, a_idx, NumActions,  v_nodes, v_edges,  pp, L,  W, CNodesWeight, CEdgesWeight) ;
+            float Q_a = RecursiveQ_Noise_LW(NumNodes, NumStates, MaxInputs, sdds_tt, sdds_nv, sdds_varf, sdds_prop, power2, NumNodeEdges, ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, p, BadState, Wi, alpha_over_m, c, h-1, z, a_idx, NumActions,  v_nodes, v_edges,  pp, Lo,  L,  W, CNodesWeight, CEdgesWeight) ;
             if ( Q_a < minQ ) {
                 minQ = Q_a ;
             }
