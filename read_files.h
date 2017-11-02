@@ -18,7 +18,7 @@
 
 using namespace std;
 
-bool Get_all_files(string file, string& nv_file, string& varf_file,string& tt_file,string& prop_file,string& cnodes_file, string& cedges_file, string& cost_file,int& NumNodes,int& p,long long int& sparse_s,int& sparse_c,int& sparse_h,int& NumSteps, bool& sparse_flag, string& Noise, int& L, int& W);
+bool Get_all_files(string file, string& nv_file, string& varf_file,string& tt_file,string& prop_file,string& cnodes_file, string& cedges_file, string& cost_file,int& NumNodes,int& p,long long int& sparse_s,int& sparse_c,int& sparse_h,int& NumSteps, bool& sparse_flag, string& Noise, int& Lo, int& L, int& W);
 
 void Get_nv_and_maxinput(string nv_file, int& MaxInputs, int NumNodes, int* nv);
 

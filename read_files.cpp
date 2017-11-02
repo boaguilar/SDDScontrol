@@ -1,6 +1,6 @@
 #include "read_files.h"
 
-bool Get_all_files(string file, string& nv_file, string& varf_file,string& tt_file,string& prop_file,string& cnodes_file, string& cedges_file, string& cost_file,int& NumNodes,int& p,long long int& sparse_s,int& sparse_c,int& sparse_h, int& NumSteps, bool& sparse_flag, string& Noise, int& L, int& W)
+bool Get_all_files(string file, string& nv_file, string& varf_file,string& tt_file,string& prop_file,string& cnodes_file, string& cedges_file, string& cost_file,int& NumNodes,int& p,long long int& sparse_s,int& sparse_c,int& sparse_h, int& NumSteps, bool& sparse_flag, string& Noise, int& Lo,  int& L, int& W)
 {
 	ifstream input_file;
 	input_file.open(file.c_str());
@@ -11,8 +11,9 @@ bool Get_all_files(string file, string& nv_file, string& varf_file,string& tt_fi
 	string line;
 	int NumLines = 0;
 	while (getline(input_file, line)) { NumLines ++ ; }
-	if (NumLines != 11 && NumLines != 16) {
-		cout << file <<" file should contain 9 or 14 lines!"<<endl;
+	if (NumLines != 9 && NumLines != 16 && NumLines != 17 ) {
+                cout << NumLines << endl;
+		cout << file <<" file should contain 11 or 16 lines!"<<endl;
 		return false;
 	}
 	input_file.clear();
@@ -38,6 +39,7 @@ bool Get_all_files(string file, string& nv_file, string& varf_file,string& tt_fi
 		else if (symbol == "sparse_h") { sparse_h = stoi(data); }
 		else if (symbol == "NumSteps") { NumSteps = stoi(data); }
 		else if (symbol == "Noise") { Noise = data; }
+                else if (symbol == "Lo") { Lo = stoi(data); }
                 else if (symbol == "L") { L = stoi(data); }
                 else if (symbol == "W") { W = stoi(data); }
 		else { cout <<"Invalid format at line "<<i<<" in the "<<file<<endl; return false; }
@@ -46,11 +48,15 @@ bool Get_all_files(string file, string& nv_file, string& varf_file,string& tt_fi
 		cout <<"P shoud larger than 1 and n should larger than 0!" <<endl;
 		return false;
 	}
-        if ( (L > W) || (W > NumNodes) || (L < 2) ) {
+        if ( (L > W) || (W > NumNodes) || (L < 1) ) {
                 cout <<"double check L and W."<<endl;
                 return false;
         }
-	if( NumLines == 16 && sparse_s >=0 && sparse_c >= 1 && sparse_h >= 1 && NumSteps >= 1 ) {
+        if ( (Lo >= L)  || (Lo < 0) ) {
+                cout << " double check Lo " << endl;
+                return false;
+        }  
+	if( ( NumLines == 16 || NumLines == 17 )&& sparse_s >=0 && sparse_c >= 1 && sparse_h >= 1 && NumSteps >= 1 ) {
 		sparse_flag = true;
 	}
 	return true;

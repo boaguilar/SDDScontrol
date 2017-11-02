@@ -11,6 +11,7 @@ sparse_s     0
 sparse_c     3
 sparse_h     2
 NumSteps     1
+Lo           1 
 L            3
 W            3
 Noise        Yes
