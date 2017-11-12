@@ -38,8 +38,8 @@ int main ( int argc, char* argv[] ) {
    int sparse_c = -1;
    int sparse_h = -1;
    int Lo = 0 ;
-   int L = 2 ;  
-   int W = 2 ;
+   int L = 1 ;  
+   int W = 1 ;
    int NumSteps = 1;
    bool sparse_flag = false;
    string Noise = "No";
@@ -274,9 +274,9 @@ int main ( int argc, char* argv[] ) {
           dec2binary( action1,  NumNodeEdges, BestActionIdx ) ;
           for ( int i = 0; i < NumNodes; i++ ) {
               cout << x[i] << " ";
-          } cout << endl ;
+          } 
           cout << " -->  ";
-          for ( int i = 0; i < NumNodes; i++ ) {
+          for ( int i = 0; i < NumNodeEdges; i++ ) {
               cout << action1[i] << " ";
           } cout << endl ; 
       }
