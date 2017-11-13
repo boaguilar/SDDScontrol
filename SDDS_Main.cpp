@@ -78,6 +78,8 @@ int main ( int argc, char* argv[] ) {
 
    int *sdds_nv = new int[NumNodes];
    Get_nv_and_maxinput(nv_file, MaxInputs, NumNodes, sdds_nv);
+  
+   cout << " MAX INPUTS -----> " << MaxInputs << endl; 
 
    int **sdds_varf = new int* [MaxInputs]; 
    for (int i = 0; i < MaxInputs; i++){
@@ -244,7 +246,6 @@ int main ( int argc, char* argv[] ) {
 
       float minQ = 10000000;
       for ( int a_idx  = 0; a_idx < NumActions;  a_idx ++ ) {
-          
            float Q_a = RecursiveQ_Noise_LW( NumNodes, NumStates, MaxInputs, sdds_tt, sdds_nv, sdds_varf, sdds_prop, power2, NumNodeEdges, ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, p, BadState, Wi, alpha_over_m,  c, h, x, a_idx, NumActions, v_nodes, v_edges, pp, Lo, L, W, CNodesWeight, CEdgesWeight) ;
 
            if ( Q_a < minQ ) {
@@ -262,11 +263,11 @@ int main ( int argc, char* argv[] ) {
               cout << x[i] << " ";
           } cout << endl ;
           cout << "action1 : "; 
-          for ( int i = 0; i < NumNodes; i++ ) {
+          for ( int i = 0; i < NumNodeEdges; i++ ) {
               cout << action1[i] << " ";
           } cout << endl ;
           cout << "action2 : ";
-          for ( int i = 0; i < NumNodes; i++ ) {
+          for ( int i = 0; i < NumNodeEdges; i++ ) {
               cout << action2[i] << " ";
           } cout << endl ;
       } 
@@ -824,7 +825,7 @@ void sdds_nextstate(int *x, int *y, int NumNodes, int MaxInputs, int *sdds_nv, i
 
        int nv = sdds_nv[i];
        int k = 0;
-       for (int j = 0 ; j < MaxInputs ; j ++ ) {
+       for (int j = 0 ; j < nv ; j ++ ) {
            int Indx =  MaxInputs - nv  + j;
            k = k + power2[Indx]*x[ sdds_varf[j][i] ] ;
        }
