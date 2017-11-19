@@ -7,7 +7,7 @@ prop         Examples/T_LGL_prop6.txt
 cnodes       Examples/T_LGL_cnodes6.txt
 cedges       Examples/T_LGL_cedges6.txt
 cost         Examples/T_LGL_cost6.txt
-sparse_s     52
+sparse_s     -1
 sparse_c     3
 sparse_h     2
 NumSteps     1

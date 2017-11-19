@@ -46,7 +46,7 @@ int main ( int argc, char* argv[] ) {
 
    // Value Iteration parameter
    float alpha = 0.9 ;  // discounting cost
-   int Nmax =100;   //  maximum number of iterations
+   int Nmax =500;   //  maximum number of iterations
    float tol = 0.0001; //  convergence criteria
    int iter =1 ; // iteration
    float pp = 0.05;
@@ -293,7 +293,7 @@ int main ( int argc, char* argv[] ) {
        int * U = new int[NumStates];       
  
        for ( int i = 0; i < NumStates; i++ ) {
-          JV[i] = 0.0;   // What this value ?? shoulnt it be 0?
+          JV[i] = 0.0;   
           newJV[i] = JV[i];
        }
    
@@ -327,6 +327,7 @@ int main ( int argc, char* argv[] ) {
        }
        double run_time = (double)(end_policy - start_policy) / CLOCKS_PER_SEC;
        cout << "Running time: " << run_time <<" seconds" <<endl;
+       cout << "Number of Iterations: " << iter  <<endl;
        output_policy.close();
 
        delete [] JV ;
@@ -417,7 +418,7 @@ float RecursiveQ_Noise_LW(int NumNodes, int NumStates, int  MaxInputs,  int **sd
         float minQ = 10000000;
         for ( int a_idx  = 0; a_idx < NumActions;  a_idx ++ ) {
             float Q_a = RecursiveQ_Noise_LW(NumNodes, NumStates, MaxInputs, sdds_tt, sdds_nv, sdds_varf, sdds_prop, power2, NumNodeEdges, ActionNodes, NumCNodes, ActionHeads, ActionTails, NumCEdges, p, BadState, Wi, alpha_over_m, c, h-1, z, a_idx, NumActions,  v_nodes, v_edges,  pp, Lo,  L,  W, CNodesWeight, CEdgesWeight) ;
-            if ( Q_a < minQ ) {
+            if ( Q_a <= minQ ) {
                 minQ = Q_a ;
             }
         }
@@ -524,7 +525,7 @@ void operatorTVi( int NumNodes, int NumStates,  int **sdds_tt, int *sdds_nv, int
       newJV[i] = 1000000.0 ;
       U[i]  = 0 ;
       for (int u = 0 ; u < NumActions; u++ ) {
-          if ( temp_J[u] < newJV[i]  ) {
+          if ( temp_J[u] <= newJV[i]  ) {
               newJV[i] = temp_J[u] ;
               U[i] =  u ;
           }
