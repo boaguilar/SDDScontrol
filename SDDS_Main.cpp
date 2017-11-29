@@ -46,7 +46,7 @@ int main ( int argc, char* argv[] ) {
 
    // Value Iteration parameter
    float alpha = 0.9 ;  // discounting cost
-   int Nmax =500;   //  maximum number of iterations
+   int Nmax =100;   //  maximum number of iterations
    float tol = 0.0001; //  convergence criteria
    int iter =1 ; // iteration
    float pp = 0.05;
@@ -84,7 +84,7 @@ int main ( int argc, char* argv[] ) {
    int **sdds_varf = new int* [MaxInputs]; 
    for (int i = 0; i < MaxInputs; i++){
        sdds_varf[i] = new int[NumNodes];
-   }
+   } 
    Get_varf(varf_file, MaxInputs, NumNodes, sdds_varf);
 
    int MaxInputStates = pow(p,MaxInputs);
@@ -291,7 +291,8 @@ int main ( int argc, char* argv[] ) {
        float * JV = new float[NumStates];
        float * newJV = new float[NumStates];
        int * U = new int[NumStates];       
- 
+
+
        for ( int i = 0; i < NumStates; i++ ) {
           JV[i] = 0.0;   
           newJV[i] = JV[i];
@@ -322,12 +323,12 @@ int main ( int argc, char* argv[] ) {
             dec2multinary( action, NumNodeEdges, p, U[State] );
             for ( int a = 0 ; a <  NumNodeEdges ; a++ ) {
                  cout << " " << action[a] ;
-            }
-            cout  << endl;
+            } cout << endl;
        }
        double run_time = (double)(end_policy - start_policy) / CLOCKS_PER_SEC;
        cout << "Running time: " << run_time <<" seconds" <<endl;
        cout << "Number of Iterations: " << iter  <<endl;
+
        output_policy.close();
 
        delete [] JV ;
@@ -522,6 +523,8 @@ void operatorTVi( int NumNodes, int NumStates,  int **sdds_tt, int *sdds_nv, int
 
       }
 
+      
+
       newJV[i] = 1000000.0 ;
       U[i]  = 0 ;
       for (int u = 0 ; u < NumActions; u++ ) {
@@ -578,11 +581,8 @@ void prob_ia ( int *x, int NumNodes, float *Cost_ia, int NumStates,  int **sdds_
    
    // initialize the z 
    for (int i = 0 ; i < NumNodes ; i ++ ) {
-     //  z[i] = 0 ;
        FreeNodes[i] = 1; 
        newx[i] = x[i] ; 
-       //prob_up[i] = sdds_prop[0][i]; //  this probably is not needed
-       //prob_dn[i] = sdds_prop[1][i]; //
    }
 
    // Set control nodes to be zero if control is 1
@@ -590,15 +590,16 @@ void prob_ia ( int *x, int NumNodes, float *Cost_ia, int NumStates,  int **sdds_
        if ( action[i + NumCNodes ] == 1 ) {
        		FreeNodes[ ActionHeads[i] ]  = -1; // Node is marked for control edge
        }
+       //cout << i << " " << action[i] << " action" << endl;
    }
-
+ 
    // Set control nodes to be zero if control is 1
    for (int i = 0; i  <  NumCNodes ; i ++ ) {
        if ( action[i] == 1) {
            newx[ ActionNodes[i] ] = v_nodes[i]; // Node is disable 
            FreeNodes[ ActionNodes[i] ] = 0;//Node is marked as a control node
-		   sdds_prop[0][ActionNodes[i]] = 1;
-		   sdds_prop[0][ActionNodes[i]] = 1;
+           sdds_prop[0][ActionNodes[i]] = 1;
+           sdds_prop[1][ActionNodes[i]] = 1;
        }
    }
    // set up z with initial values
@@ -606,45 +607,47 @@ void prob_ia ( int *x, int NumNodes, float *Cost_ia, int NumStates,  int **sdds_
 	   z[i] = newx[i];
    }
 
-
+   
    // compute z, the deterministi next state 
    for (int i = 0; i < NumNodes; i++ ) {
 
        if ( FreeNodes[i] == 1) {
            int nv = sdds_nv[i];
            int* new_function = new int[nv];
-		   for (int h = 0; h < nv; h ++) {
-			  // cout<< "sdds_varf[h][i]: "<< sdds_varf[h][i] - 1<< "  h: " << h << "  i:" << i<<endl;
-			   new_function[h] = newx[ sdds_varf[h][i] ];
-		   }
-		    int new_index = multinary2dec ( new_function, nv, p);
+	   for (int h = 0; h < nv; h ++) {
+		new_function[h] = newx[ sdds_varf[h][i] ];
+	   }
+	   int new_index = multinary2dec ( new_function, nv, p);
            z[i] = sdds_tt[new_index][i];
-		   delete [] new_function;
+	   delete [] new_function;
        }
        else if ( FreeNodes[i] == -1 ) {
-		   for (int j = 0; j < NumNodes ; j++) {
-			   copy_newx[j] = newx[j];
-		   }
-		   int nv = sdds_nv[i];
-		   int* new_function = new int[nv];
-		   for (int g = 0; g < NumCEdges; g ++) {
-			   if (ActionHeads[g] == i) {
-				   copy_newx[ActionTails[g]] = v_edges[g];
-			   }
-		   }
-		   for (int h = 0; h < nv; h++) {
-			    new_function[h] = copy_newx[ sdds_varf[h][i] ];
-		   }
-		   int new_index = multinary2dec ( new_function, nv, p);
-           z[i] = sdds_tt[new_index][i];
-		   delete [] new_function;
+	   for (int j = 0; j < NumNodes ; j++) {
+		   copy_newx[j] = newx[j];
 	   }
+	   int nv = sdds_nv[i];
+	   int* new_function = new int[nv];
+	   for (int g = 0; g < NumCEdges; g ++) {
+		   if ( (ActionHeads[g] == i) && ( action[g + NumCNodes] == 1 ) )  {
+			   copy_newx[ActionTails[g]] = v_edges[g];
+		   }
+	   }
+	   for (int h = 0; h < nv; h++) {
+		    new_function[h] = copy_newx[ sdds_varf[h][i] ];
+	   }
+           
+	   int new_index = multinary2dec ( new_function, nv, p);
+           z[i] = sdds_tt[new_index][i];
+	   delete [] new_function;
+       }
    }
-
 
    for ( int state  = 0 ; state < NumStates; state++ ) {
 
+          
+
        dec2multinary ( y, NumNodes, p, state);
+     
        pia[state] = 1.0;
        Cost_ia[state]= cost_ija( y , BadState,  NumNodes, action, NumNodeEdges , NumCNodes, ActionNodes, Wi, CNodesWeight, CEdgesWeight );
 
@@ -681,7 +684,7 @@ void prob_ia ( int *x, int NumNodes, float *Cost_ia, int NumStates,  int **sdds_
    delete [] newx ;
    delete [] copy_newx ;
 
-   float p_to_n = 1/(float)NumStates;
+   float p_to_n = 1.0 /  (float) NumStates;
    for (int j = 0; j < NumStates ; j ++ ) {
 	pia[j] = ( 1 - pp ) * pia[j] + pp*p_to_n;
    }
@@ -715,8 +718,8 @@ void nextstate_ia (int *x, int *y, int NumNodes, int NumStates,  int **sdds_tt, 
        if ( action[i] == 1) {
            newx[ ActionNodes[i] ] = v_nodes[i]; // Node is disable 
            FreeNodes[ ActionNodes[i] ] = 0;//Node is marked as a control node
-		   sdds_prop[0][ActionNodes[i]] = 1;
-		   sdds_prop[0][ActionNodes[i]] = 1;
+           sdds_prop[0][ActionNodes[i]] = 1;
+           sdds_prop[0][ActionNodes[i]] = 1;
        }
    }
    // set up z with initial values
@@ -740,23 +743,25 @@ void nextstate_ia (int *x, int *y, int NumNodes, int NumStates,  int **sdds_tt, 
            delete [] new_function;
        }
        else if ( FreeNodes[i] == -1 ) {
-		   for (int j = 0; j < NumNodes ; j++) {
-			   copy_newx[j] = newx[j];
-		   }
-		   int nv = sdds_nv[i];
-		   int* new_function = new int[nv];
-		   for (int g = 0; g < NumCEdges; g ++) {
-			   if (ActionHeads[g] == i) {
-				   copy_newx[ActionTails[g]] = v_edges[g];
-			   }
-		   }
-		   for (int h = 0; h < nv; h++) {
-			    new_function[h] = copy_newx[ sdds_varf[h][i] ];
-		   }
-		   long long int new_index = multinary2dec ( new_function, nv, p);
-                   z[i] = sdds_tt[new_index][i];
-		   delete [] new_function;
+           for (int j = 0; j < NumNodes ; j++) {
+               copy_newx[j] = newx[j];
+           }
+
+           int nv = sdds_nv[i];
+           int* new_function = new int[nv];
+
+           for (int g = 0; g < NumCEdges; g ++) {
+               if ( (ActionHeads[g] == i) && ( action[g + NumCNodes] == 1 ) )  {
+                   copy_newx[ActionTails[g]] = v_edges[g];
+               }
+           }
+	   for (int h = 0; h < nv; h++) {
+	        new_function[h] = copy_newx[ sdds_varf[h][i] ];
 	   }
+	   long long int new_index = multinary2dec ( new_function, nv, p);
+           z[i] = sdds_tt[new_index][i];
+	   delete [] new_function;
+       }
    }
 
 
