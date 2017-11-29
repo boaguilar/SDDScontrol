@@ -1,7 +1,6 @@
 #include "read_files.h"
 
-bool Get_all_files(string file, string& nv_file, string& varf_file,string& tt_file,string& prop_file,string& cnodes_file, string& cedges_file,
-				   string& cost_file,int& NumNodes,int& p,long long int& sparse_s,int& sparse_c,int& sparse_h, int& NumSteps, bool& sparse_flag, string& Noise)
+bool Get_all_files(string file, string& nv_file, string& varf_file,string& tt_file,string& prop_file,string& cnodes_file, string& cedges_file, string& cost_file,int& NumNodes,int& p,long long int& sparse_s,int& sparse_c,int& sparse_h, int& NumSteps, bool& sparse_flag, string& Noise, int& Lo,  int& L, int& W)
 {
 	ifstream input_file;
 	input_file.open(file.c_str());
@@ -12,8 +11,9 @@ bool Get_all_files(string file, string& nv_file, string& varf_file,string& tt_fi
 	string line;
 	int NumLines = 0;
 	while (getline(input_file, line)) { NumLines ++ ; }
-	if (NumLines != 9 && NumLines != 14) {
-		cout << file <<" file should contain 9 or 14 lines!"<<endl;
+	if (NumLines != 9 && NumLines != 16 && NumLines != 17 ) {
+                cout << NumLines << endl;
+		cout << file <<" file should contain 11 or 16 lines!"<<endl;
 		return false;
 	}
 	input_file.clear();
@@ -39,13 +39,24 @@ bool Get_all_files(string file, string& nv_file, string& varf_file,string& tt_fi
 		else if (symbol == "sparse_h") { sparse_h = stoi(data); }
 		else if (symbol == "NumSteps") { NumSteps = stoi(data); }
 		else if (symbol == "Noise") { Noise = data; }
+                else if (symbol == "Lo") { Lo = stoi(data); }
+                else if (symbol == "L") { L = stoi(data); }
+                else if (symbol == "W") { W = stoi(data); }
 		else { cout <<"Invalid format at line "<<i<<" in the "<<file<<endl; return false; }
 	}
 	if ( ( p < 2) || ( NumNodes < 1) ) {
 		cout <<"P shoud larger than 1 and n should larger than 0!" <<endl;
 		return false;
 	}
-	if( NumLines == 14 && sparse_s >=0 && sparse_c >= 1 && sparse_h >= 1 && NumSteps >= 1 ) {
+        if ( (L > W) || (W > NumNodes) || (L < 1) ) {
+                cout <<"double check L and W."<<endl;
+                return false;
+        }
+        if ( (Lo >= L)  || (Lo < 0) ) {
+                cout << " double check Lo " << endl;
+                return false;
+        }  
+	if( ( NumLines == 16 || NumLines == 17 )&& sparse_s >=0 && sparse_c >= 1 && sparse_h >= 1 && NumSteps >= 1 ) {
 		sparse_flag = true;
 	}
 	return true;
@@ -89,7 +100,7 @@ void Get_nv_and_maxinput(string nv_file, int& MaxInputs, int NumNodes, int* nv)
 		}
 	}
 	if ( i != 0 ) {
-		cout << nv_file << " does not a 1 X " <<NumNodes << " file!!!"<<endl;
+		cout << nv_file << " is not a 1 X " <<NumNodes << " file!!!"<<endl;
 	}
 	input_file_nv.close();
 }
@@ -234,7 +245,7 @@ void Get_varf(string varf_file, int MaxInputs, int NumNodes, int** varf)
 	input_file_varf.close();
 }
 
-void read_cedges(string cedges_file, int* ActionHeads, int* ActionTails, int* v_edges)
+void read_cedges(string cedges_file, int* ActionHeads, int* ActionTails, int* v_edges, float* CEdgesWeight)
 {
 	ifstream input_file_cedges;
 	input_file_cedges.open(cedges_file);
@@ -243,15 +254,11 @@ void read_cedges(string cedges_file, int* ActionHeads, int* ActionTails, int* v_
 		return;
 	}
 	string line;
-	//input_file_cedges.clear();
-	//input_file_cedges.seekg(0,input_file_cedges.beg);
-	//ActionHeads = new int[NumCedges];
-	//ActionTails = new int[NumCedges];
-	//v_edges = new int[NumCedges];
+
 	int i = 0;
 	while (getline(input_file_cedges, line)) {
 		istringstream iss(line);
-		iss >> ActionHeads[i] >> ActionTails[i] >> v_edges[i];
+		iss >> ActionHeads[i] >> ActionTails[i] >> v_edges[i] >>  CEdgesWeight[i] ;
 		ActionHeads[i] --;
 		ActionTails[i] --;
 		i ++;
@@ -259,7 +266,7 @@ void read_cedges(string cedges_file, int* ActionHeads, int* ActionTails, int* v_
 	input_file_cedges.close();
 }
 
-void read_cnodes(string cnodes_file, int* ActionNodes, int* v_nodes)
+void read_cnodes(string cnodes_file, int* ActionNodes, int* v_nodes, float* CNodesWeight)
 {
 	ifstream input_file_cnodes;
 	input_file_cnodes.open(cnodes_file);
@@ -268,21 +275,18 @@ void read_cnodes(string cnodes_file, int* ActionNodes, int* v_nodes)
 		return;
 	}
 	string line;
-	//input_file_cnodes.clear();
-	//input_file_cnodes.seekg(0,input_file_cnodes.beg);
-	//ActionNodes = new int[NumCnodes];
-	//v_nodes = new int[NumCnodes];
+
 	int i = 0;
 	while (getline(input_file_cnodes, line)) {
 		istringstream iss(line);
-		iss >> ActionNodes[i] >> v_nodes[i];
+		iss >> ActionNodes[i] >> v_nodes[i] >> CNodesWeight[i];
 		ActionNodes[i] --;
 		i ++;
 	}
 	input_file_cnodes.close();
 }
 
-void read_cost(string cost_file, int* Badstate, float* Wi, int NumNodes)
+void read_state_cost(string cost_file, int* Badstate, float* Wi, int NumNodes)
 {
 	ifstream input_file_cost;
 	input_file_cost.open(cost_file);
